@@ -52,3 +52,66 @@ x_test.to_csv("x_test.csv", index=False)
 pd.Series(y_train).to_csv("y_train.csv", index=False)
 pd.Series(y_val).to_csv("y_val.csv", index=False)
 pd.Series(y_test).to_csv("y_test.csv", index=False)
+# Import des biblothèques
+from sklearn.model_selection import KFold, RandomizedSearchCV #sers pour la cross validation et de la recherche d'hyperparamètres
+from sklearn.compose import ColumnTransformer #permet de traiter différement les colones si elles sont numériques ou catégorielles
+from sklearn.preprocessing import OneHotEncoder, StandardScaler # permet de standardiser les données numériques et de transformer les données texte en 0,1
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score #permet d'importer nos métriques d'évaluation comme le MAE ou le MSE
+from sklearn.ensemble import RandomForestRegressor #modèle de ML random forest
+import statsmodels.api as sm #bibliothèque de statistiques
+
+#Import de nos bases de données (si le code d'avant à été executé alors pas besoin d'executer cette partie du code)
+x_train = pd.read_csv("x_train.csv")
+x_val   = pd.read_csv("x_val.csv")
+x_test  = pd.read_csv("x_test.csv")
+
+y_train = pd.read_csv("y_train.csv").values.ravel()
+y_val   = pd.read_csv("y_val.csv").values.ravel()
+y_test  = pd.read_csv("y_test.csv").values.ravel()
+
+#On concatène nos données pour la recherche d'hyperparamètres avec cross validation
+x_train_full = pd.concat([x_train, x_val], axis=0)
+y_train_full = np.concatenate([y_train, y_val])
+
+#preprocessing
+cat_cols=x_train.select_dtypes(include=["object"]).columns.tolist()
+num_cols=x_train.select_dtypes(include=[np.number]).columns.tolist()
+#crée 2 catégories de colones, une catégorie objet et une numérique
+
+preprocess = ColumnTransformer( #introduis preprocess, on s'en servira plus tard
+    [
+        ("num", StandardScaler(), num_cols),
+        ("cat", OneHotEncoder(handle_unknown="ignore"), cat_cols)
+    ]
+)
+
+
+#Régression linéaire simple - OLS
+x_train_ols = preprocess.fit_transform(x_train)
+x_test_ols = preprocess.transform(x_test)
+
+x_train_ols = x_train_ols if isinstance(x_train_ols, np.ndarray) else x_train_ols.toarray()
+x_test_ols = x_test_ols if isinstance(x_test_ols, np.ndarray) else x_test_ols.toarray()
+
+x_train_sm = sm.add_constant(x_train_ols)
+x_test_sm = sm.add_constant(x_test_ols)
+
+ols = sm.OLS(y_train, x_train_sm).fit() #fait la régression
+y_pred_ols = ols.predict(x_test_sm) #prédit les données
+
+#Données d'erreur
+print(f"MAE={round(mean_absolute_error(y_test, y_pred_ols),3)}")
+print(f"RMSE={round(np.sqrt(mean_squared_error(y_test, y_pred_ols)),3)}")
+print(f"R²={round(r2_score(y_test, y_pred_ols),3)}")
+
+#Affichage du graphique de la régression
+plt.figure()
+plt.scatter(y_test, y_pred_ols, alpha=0.5)
+plt.title("Données prédites vs données réelles")
+plt.xlabel("Données réelles")
+plt.ylabel("Données prédites")
+plt.show()
+
+
+# Random forest
