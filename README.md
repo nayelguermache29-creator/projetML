@@ -186,3 +186,109 @@ results = pd.DataFrame({
 })
 print(results)
 #on compare les résultats des différents modèles
+
+# Deep learning
+
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
+from torch.optim import AdamW
+
+
+preprocess = ColumnTransformer( #on va standardiser les données et passer les non numériques en 0 et 1
+    [
+        ("num", StandardScaler(), num_cols),
+        ("cat", OneHotEncoder(handle_unknown="ignore"), cat_cols)
+    ]
+)
+# on transforme nos données pour le deeplearning
+x_train_dl = preprocess.fit_transform(x_train)
+x_val_dl = preprocess.transform(x_val)
+_test_dl = preprocess.transform(x_test)
+
+class TabularDataset(Dataset):
+    def __init__(self,x,y):
+        self.x=torch.tensor(x,dtype=torch.float32)
+        self.y=torch.tensor(y,dtype=torch.float32).view(-1,1)
+    def __len__(self):
+        return len(self.y)
+    def __getitem__(self,idx):
+        return self.x[idx], self.y[idx]
+# on crée une class avec nos objets d'entrée et de sortie pour que pytorch comprenne 
+
+#on va créer un modèle de deep learning
+class MLP(nn.Module):
+    def __init__(self, p):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(p, 64), #64 neurones
+            nn.ReLU(), #sers a faire de la non linéarité
+            nn.Dropout(0.2), #20% des neuronnes sont désactivés aléatoirement pour éviter l'overfitting
+            nn.Linear(64, 32), 
+            nn.ReLU(),
+            nn.Linear(32, 1) #transforme notre vecteur en une seule valeur 
+        )
+    def forward(self, x):
+        return self.net(x)
+
+#création de notre fonction de loss
+class WeightedMSE(nn.Module):
+    def __init__(self, threshold, alpha=2.0):
+        super().__init__()
+        self.threshold = threshold
+        self.alpha = alpha
+
+    def forward(self, y_pred, y_true): #décrit comment calculer la loss
+        w = torch.where(y_true > self.threshold, self.alpha, 1.0) 
+        return torch.mean(w * (y_pred - y_true) ** 2) #focntion de la loss
+
+train_ds = TabularDataset(x_train_dl, y_train) #on transforme les données d'entrainement pour PyTorch
+val_ds = TabularDataset(x_val_dl, y_val) #on transforme les données de validation pour PyTorch
+test_ds = TabularDataset(x_test_dl, y_test) #on transforme les données de test pour PyTorch
+
+#ici-bas, nous allons diviser nos données en différentes sous données (batch)
+train_loader = DataLoader(train_ds, batch_size = 64, shuffle= True)# on mélange nos données pour que notre modèle n'aprenne pas un ordre précis
+val_loader= DataLoader(val_ds,batch_size=64)#pas besoin de mélanger nos données de validation
+
+#on continue a données des informations a notre modèle pour qu'il aprenne bien
+model=MLP(x_train_dl.shape[1]) #on donne a notre modèle notre bon nombre de colones a analyser
+criterion= WeightedMSE(np.quantile(y_train,0.75)) #on pénalise plus fortement les données quand le nombre est grand
+optimizer=AdamW(model.parameters(), lr=1e-3) #on définis la taille du pas
+
+
+#DEEP LEARNING
+
+for epoch in range(40): #on va revoir les données d'entrainement 40 fois
+    model.train()
+    for xb, yb in train_loader: #on prend les données d'entrée et de sortie
+        optimizer.zero_grad() #il cherche a optimiser
+        loss = criterion(model(xb),yb) 
+        #on va prendre les données du modèle et voir si elles sont conformes aux données réelles et on va calculer la fonctionn de loss dessus
+        loss.backward() #le modèle cherche ici a voir quelle donnée lui a couté l'erreur
+        optimizer.step() #le modèle modifie ses parapètres pour mieux prédire la prochaine fois
+        
+    if epoch%5==0:
+        model.eval()
+        with torch.no_grad(): #on utilise torch.no_grad pour pas utilise tour torch
+            val_predites = torch.cat([model(xb) for xb, _ in val_loader])
+            val_réelles = torch.cat([yb for _, yb in val_loader])
+            mae = torch.mean(torch.abs(val_predites - val_réelles))
+        print(f"Epoch {epoch} | Val MAE: {mae:.4f}") #toutes les 5 époques, on va regarder notre MAE pour voir comment il évolue
+        
+#ici-bas, on évalue le modèle
+model.eval()
+with torch.no_grad(): #on utilise torch.no_grad pour pas utiliser tour torch, notre modèle doit pas apprendre, juste donner les réponses
+    y_pred_dl = model(torch.tensor(x_test_dl, dtype=torch.float)).numpy().flatten()
+
+print("\n=== DEEP LEARNING ===")
+print("MAE :", round(mean_absolute_error(y_test, y_pred_dl),3))
+print("RMSE:", round(np.sqrt(mean_squared_error(y_test, y_pred_dl)),3))
+print("R2  :", round(r2_score(y_test, y_pred_dl),3))
+
+# Plot: true vs predicted
+plt.figure()
+plt.scatter(y_test, y_pred_dl, alpha=0.5)
+plt.title("Données réelles vs prédites")
+plt.xlabel("Données réelles burnout")
+plt.ylabel("Données prédites burnout")
+plt.show()
