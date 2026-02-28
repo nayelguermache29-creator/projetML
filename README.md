@@ -115,3 +115,74 @@ plt.show()
 
 
 # Random forest
+
+preprocess = ColumnTransformer( #on va standardiser les données et passer les non numériques en 0 et 1
+    [
+        ("num", StandardScaler(), num_cols),
+        ("cat", OneHotEncoder(handle_unknown="ignore"), cat_cols)
+    ]
+)
+
+rf_pipe = Pipeline([("prep",  preprocess), ("rf", RandomForestRegressor(random_state=42))])
+# dans ce code, nous avons préparé nos données ainsi que définir notre random_state pour la reproductibilité
+param_grid = {
+    "rf__n_estimators": [200, 500, 800],
+    "rf__max_depth": [None, 10, 20],
+    "rf__min_samples_leaf": [1, 5, 10]
+}
+#ici c'est l'hyperparamètre, nous allons tester différentes combinaisons d'arbres
+#nous allons tester en tout 27 combinaisons avec différents nombre d'estimateurs, différentes profondeurs et un nb
+#différent d'observations par feuille
+
+cv = KFold(n_splits=5, shuffle=True, random_state=42) #on mélange nos données et on sépare nos données en 5 pour faire 5 train/validation sur a chaque fois 80%/20%
+
+rf_search = RandomizedSearchCV(
+    rf_pipe,
+    param_distributions=param_grid,
+    n_iter=10, #nous ne testerons que 10 itérations finalement, pas 27
+    cv=cv,
+    scoring="neg_mean_absolute_error",
+    n_jobs=-1,
+    random_state=42
+)
+#concrètement, on crée ici toute la structure qui vas nous permettre de faire notre régression
+# on a définis nos paramètres avant et maintenant nous allons tout concaténer pour ensuite s'entrainer
+
+rf_search.fit(x_train_full, y_train_full) #on entraine maintena tnotre modèle
+
+best_rf = rf_search.best_estimator_ #ici, on stoke notre meilleur modèle entrainé une nouvelle fois dans cette variable
+y_pred_rf = best_rf.predict(x_test) #on teste notre meilleur modèle sur nos données test
+
+#Données de performance
+print(f"MAE={round(mean_absolute_error(y_test, y_pred_rf),3)}")
+print(f"RMSE={round(np.sqrt(mean_squared_error(y_test, y_pred_rf)),3)}")
+print(f"R²={round(r2_score(y_test, y_pred_rf),3)}")
+
+#Résultat
+plt.figure()
+plt.scatter(y_test, y_pred_rf, alpha=0.5)
+plt.title("Données prédites vs données réelles - Random fotest")
+plt.xlabel("Données réelles burnout")
+plt.ylabel("Données prédites burnout")
+plt.show()
+
+
+
+#Comparaison entre les 2 modèles
+results = pd.DataFrame({
+    "Modele": ["OLS", "RandomForest"],
+    "MAE": [
+        mean_absolute_error(y_test, y_pred_ols),
+        mean_absolute_error(y_test, y_pred_rf)
+    ],
+    "RMSE": [
+        np.sqrt(mean_squared_error(y_test, y_pred_ols)),
+        np.sqrt(mean_squared_error(y_test, y_pred_rf))
+    ],
+    "R2": [
+        r2_score(y_test, y_pred_ols),
+        r2_score(y_test, y_pred_rf)
+    ]
+})
+print(results)
+#on compare les résultats des différents modèles
