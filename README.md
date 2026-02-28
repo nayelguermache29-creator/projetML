@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split #sers a spliter la base de 
 
 # Import de la base de données et nettoyage
 
-df = pd.read_csv(r"C:\Users\SCD UM\Desktop\student.csv", sep=";") 
+df = pd.read_csv(r"https://raw.githubusercontent.com/nayelguermache29-creator/projetML/main/data/student.csv", sep=";") 
 display(df.head()) #on regarde si l'on a bien importé
 print(df.isna().sum()) #on va compter le nombre de N/A il n'est pas censé en avoir mais on regarde quand même
 print(df.dtypes) #on regarde si nos données sont du bon type
