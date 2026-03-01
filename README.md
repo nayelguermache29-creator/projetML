@@ -286,9 +286,35 @@ print("RMSE:", round(np.sqrt(mean_squared_error(y_test, y_pred_dl)),3))
 print("R2  :", round(r2_score(y_test, y_pred_dl),3))
 
 # Plot: true vs predicted
+
+
+
 plt.figure()
 plt.scatter(y_test, y_pred_dl, alpha=0.5)
 plt.title("Données réelles vs prédites")
 plt.xlabel("Données réelles burnout")
 plt.ylabel("Données prédites burnout")
 plt.show()
+
+
+
+#Comparaison entre les 3 modèles
+results = pd.DataFrame({
+    "Modele": ["OLS", "RandomForest","DeepLearning"],
+    "MAE": [
+        mean_absolute_error(y_test, y_pred_ols),
+        mean_absolute_error(y_test, y_pred_rf),
+        mean_absolute_error(y_test, y_pred_dl)
+    ],
+    "RMSE": [
+        np.sqrt(mean_squared_error(y_test, y_pred_ols)),
+        np.sqrt(mean_squared_error(y_test, y_pred_rf)),
+        np.sqrt(mean_squared_error(y_test, y_pred_dl))
+    ],
+    "R2": [
+        r2_score(y_test, y_pred_ols),
+        r2_score(y_test, y_pred_rf),
+        r2_score(y_test, y_pred_dl)
+    ]
+})
+results
