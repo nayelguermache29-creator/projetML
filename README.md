@@ -280,7 +280,6 @@ model.eval()
 with torch.no_grad(): #on utilise torch.no_grad pour pas utiliser tour torch, notre modèle doit pas apprendre, juste donner les réponses
     y_pred_dl = model(torch.tensor(x_test_dl, dtype=torch.float)).numpy().flatten()
 
-print("\n=== DEEP LEARNING ===")
 print("MAE :", round(mean_absolute_error(y_test, y_pred_dl),3))
 print("RMSE:", round(np.sqrt(mean_squared_error(y_test, y_pred_dl)),3))
 print("R2  :", round(r2_score(y_test, y_pred_dl),3))
