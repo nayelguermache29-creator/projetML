@@ -44,14 +44,6 @@ x_train_full, x_test, y_train_full, y_test = train_test_split(x,y,test_size=0.05
 x_train, x_val, y_train, y_val = train_test_split(x_train_full, y_train_full, test_size = 0.15, random_state=42)
 # ce code va séparer nos dataframes en 2, un jeu de données pour le vrais entrainement et un pour la validation
 
-#Enregistrement de dos données dans des tableaux excel sous forme csv pour s'en servir plus tard
-x_train.to_csv("x_train.csv", index=False)
-x_val.to_csv("x_val.csv", index=False)
-x_test.to_csv("x_test.csv", index=False)
-
-pd.Series(y_train).to_csv("y_train.csv", index=False)
-pd.Series(y_val).to_csv("y_val.csv", index=False)
-pd.Series(y_test).to_csv("y_test.csv", index=False)
 # Import des biblothèques
 from sklearn.model_selection import KFold, RandomizedSearchCV #sers pour la cross validation et de la recherche d'hyperparamètres
 from sklearn.compose import ColumnTransformer #permet de traiter différement les colones si elles sont numériques ou catégorielles
