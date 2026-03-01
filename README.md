@@ -205,6 +205,7 @@ preprocess = ColumnTransformer( #on va standardiser les données et passer les n
 x_train_dl = preprocess.fit_transform(x_train)
 x_val_dl = preprocess.transform(x_val)
 _test_dl = preprocess.transform(x_test)
+x_test_dl = preprocess.transform(x_test)
 
 class TabularDataset(Dataset):
     def __init__(self,x,y):
