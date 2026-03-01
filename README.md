@@ -168,25 +168,6 @@ plt.show()
 
 
 
-#Comparaison entre les 2 modèles
-results = pd.DataFrame({
-    "Modele": ["OLS", "RandomForest"],
-    "MAE": [
-        mean_absolute_error(y_test, y_pred_ols),
-        mean_absolute_error(y_test, y_pred_rf)
-    ],
-    "RMSE": [
-        np.sqrt(mean_squared_error(y_test, y_pred_ols)),
-        np.sqrt(mean_squared_error(y_test, y_pred_rf))
-    ],
-    "R2": [
-        r2_score(y_test, y_pred_ols),
-        r2_score(y_test, y_pred_rf)
-    ]
-})
-print(results)
-#on compare les résultats des différents modèles
-
 # Deep learning
 
 import torch
